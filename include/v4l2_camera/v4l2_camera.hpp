@@ -20,6 +20,7 @@
 
 #include <camera_info_manager/camera_info_manager.hpp>
 #include <image_transport/image_transport.hpp>
+#include <diagnostic_updater/diagnostic_updater.hpp>
 
 #include <ostream>
 #include <rclcpp/rclcpp.hpp>
@@ -120,6 +121,10 @@ private:
   bool publish_next_frame_;
   bool use_image_transport_;
 
+  diagnostic_updater::Updater diagnostic_updater_{this};
+  rclcpp::Time last_capture_stamp_{rclcpp::Time(0)};
+  double capture_rate_{0.0};
+
 #ifdef ENABLE_CUDA
   // Memory region to communicate with GPU
   std::allocator<GPUMemoryManager> allocator_;
@@ -143,8 +148,8 @@ private:
   bool checkCameraInfo(
     sensor_msgs::msg::Image const & img,
     sensor_msgs::msg::CameraInfo const & ci);
+  void updateDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
 };
-
 }  // namespace v4l2_camera
 
 #endif  // V4L2_CAMERA__V4L2_CAMERA_HPP_

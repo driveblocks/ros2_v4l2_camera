@@ -103,6 +103,10 @@ V4L2Camera::V4L2Camera(rclcpp::NodeOptions const & options)
   // Read parameters and set up callback
   createParameters();
 
+  diagnostic_updater_.setHardwareID(get_name());
+  diagnostic_updater_.add("capture_status", this, &V4L2Camera::updateDiagnostics);
+  diagnostic_updater_.setPeriod(0.1);
+
   // Start the camera
   if (!camera_->start()) {
     return;
@@ -119,6 +123,7 @@ V4L2Camera::V4L2Camera(rclcpp::NodeOptions const & options)
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
           continue;
         }
+
         if(publish_next_frame_ == false){
           continue;
         }
@@ -144,7 +149,10 @@ V4L2Camera::V4L2Camera(rclcpp::NodeOptions const & options)
         ci->header.stamp = stamp;
         ci->header.frame_id = camera_frame_id_;
         publish_next_frame_ = publish_rate_ < 0;
-
+        if(last_capture_stamp_.seconds() > 0){
+          capture_rate_ = 1.0 / (rclcpp::Time(stamp) - last_capture_stamp_).seconds();
+        }
+        last_capture_stamp_ = rclcpp::Time(stamp);
         if (use_image_transport_) {
           camera_transport_pub_.publish(*img, *ci);
         } else {
@@ -588,6 +596,25 @@ bool V4L2Camera::checkCameraInfo(
   sensor_msgs::msg::CameraInfo const & ci)
 {
   return ci.width == img.width && ci.height == img.height;
+}
+
+void V4L2Camera::updateDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+  using diagnostic_msgs::msg::DiagnosticStatus;
+
+  auto current_stamp = get_clock()->now();
+  if(current_stamp.seconds() - last_capture_stamp_.seconds() > 5.0){
+    stat.summary(DiagnosticStatus::STALE, "timeout");
+  }else if (capture_rate_ < 1.0) {
+    stat.summary(DiagnosticStatus::ERROR, "error");
+  } else if (capture_rate_ < 5.0) {
+    stat.summary(DiagnosticStatus::WARN, "warn");
+  } else {
+    stat.summary(DiagnosticStatus::OK, "ok");
+  }
+  stat.addf("last_capture_stamp", "%.2f", last_capture_stamp_.seconds());
+  stat.addf("now", "%.2f", current_stamp.seconds());
+  stat.addf("Capture rate", "%.2f Hz", capture_rate_);
 }
 
 #ifdef ENABLE_CUDA

@@ -1,0 +1,23 @@
+<launch>
+	<!-- <arg name="c1_param_path" value="$(find-pkg-share v4l2_camera)/launch/c1.param.yaml"/>
+	<arg name="c2_param_path" value="$(find-pkg-share v4l2_camera)/launch/c2.param.yaml"/> -->
+
+    <!-- TODO: Delete unnecessary params. -->
+
+    <arg name="rect_impl" default="npp" />
+    <!-- FIXME: Currently opencv support is dubious. Crashes sometimes. -->
+    <arg name="use_opencv_map_init" default="False" />
+    <arg name="alpha" default="0.0" />
+    <arg name="input_image_topic" default="/image_raw"/>
+
+    <node pkg="gpu_imgproc" exec="gpu_imgproc_node" name="gpu_imgproc_camera_1" output="screen">
+		<param name="rect_impl" value="$(var rect_impl)"/>
+        <param name="use_opencv_map_init" value="$(var use_opencv_map_init)"/>
+		<param name="alpha" value="$(var alpha)" />
+
+        <remap from="/image_raw" to="$(var input_image_topic)"/>
+        <remap from="/image_raw/compressed" to="$(var input_image_topic)/compressed"/>
+        <remap from="/image_rect" to="$(var input_image_topic)/image_rect"/>
+        <remap from="/image_rect/compressed" to="$(var input_image_topic)/image_rect/compressed"/>
+    </node>
+</launch>

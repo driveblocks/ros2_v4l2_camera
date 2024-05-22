@@ -21,10 +21,20 @@ include_directories(
 )
 
 find_package (LibJpegTurbo)
-if (${LibJpegTurbo_FOUND})
+message("LibJpegTurbo_INCLUDE_DIRS: ${LibJpegTurbo_INCLUDE_DIRS}")
+message(CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH})
+
+find_library(TURBOJPEG_LIBRARY NAMES turbojpeg /usr/lib/x86_64-linux-gnu)
+find_path(TURBOJPEG_INCLUDE_DIR turbojpeg.h PATHS /usr/include /usr/local/include)
+if (TURBOJPEG_LIBRARY AND TURBOJPEG_INCLUDE_DIR)
+  set(LibJpegTurbo_FOUND TRUE)
+  set(LibJpegTurbo_INCLUDE_DIRS ${TURBOJPEG_INCLUDE_DIR})
+  set(LibJpegTurbo_LIBRARY ${TURBOJPEG_LIBRARY})
+  message("LibJpegTurbo_INCLUDE_DIRS: ${LibJpegTurbo_INCLUDE_DIRS}")
+  message("LibJpegTurbo_LIBRARY: ${LibJpegTurbo_LIBRARY}")
   message("LibJpegTurbo found")
   add_definitions(-DTURBOJPEG_AVAILABLE)
-endif ()
+endif()
 
 find_package(CUDA)
 # if (CUDA_FOUND)
@@ -175,6 +185,8 @@ if (JETSON)
           LIBRARY DESTINATION lib
           RUNTIME DESTINATION bin)
 else()
+  ## Non-Jetson
+  ## JPEG Compressor
   ament_auto_add_library(jpeg_compressor SHARED
     src/accelerator/jpeg_compressor.cpp
   )
@@ -218,6 +230,7 @@ else()
     message(FATAL_ERROR "No JPEG encoder found")
   endif()
 
+  ## Rectifier
   ament_auto_add_library(rectifier SHARED
     src/accelerator/rectifier.cpp)
 
@@ -228,12 +241,16 @@ else()
       ${OpenCV_INCLUDE_DIRS}
     )
  ament_target_dependencies(rectifier rclcpp sensor_msgs std_msgs image_geometry cv_bridge)
+    target_include_directories(rectifier PUBLIC
+      ${CUDA_INCLUDE_DIRS}
+    )
     target_link_libraries(rectifier
       ${CUDA_nppidei_LIBRARY}
       ${CUDA_nppig_LIBRARY}
       ${CUDA_nppicc_LIBRARY}
       ${CUDA_nppisu_LIBRARY}
       ${OpenCV_LIBRARIES}
+      ${CUDA_LIBRARIES}
     )
   elseif(OPENCV_FOUND)
     message("Using OpenCV")
@@ -248,11 +265,12 @@ else()
     message(FATAL_ERROR "No rectifier found")
   endif()
 
+  ## GPU_imgproc
   ament_auto_add_library(gpu_imgproc SHARED
           src/gpu_imgproc.cpp
           )
 
- ament_target_dependencies(rectifier rclcpp sensor_msgs std_msgs image_geometry cv_bridge)
+  ament_target_dependencies(rectifier rclcpp sensor_msgs std_msgs image_geometry cv_bridge)
   target_link_libraries(gpu_imgproc
           rectifier
           jpeg_compressor

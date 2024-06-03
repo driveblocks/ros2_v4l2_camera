@@ -48,19 +48,19 @@ V4L2Camera::V4L2Camera(rclcpp::NodeOptions const & options)
   // This should happen before registering on_set_parameters_callback,
   // else transport plugins will fail to declare their parameters
   bool use_sensor_data_qos = declare_parameter("use_sensor_data_qos", false);
-  publish_rate_ = declare_parameter("publish_rate", -1.0);
-  if(std::abs(publish_rate_) < std::numeric_limits<double>::epsilon()){
-    RCLCPP_WARN(get_logger(), "Invalid publish_rate = 0. Use default value -1 instead");
-    publish_rate_ = -1.0;
-  }
-  if(publish_rate_ > 0){
-    const auto publish_period = rclcpp::Rate(publish_rate_).period();
-    image_pub_timer_ = this->create_wall_timer(publish_period, [this](){this->publish_next_frame_=true;});
-    publish_next_frame_ = false;
-  }
-  else{
-    publish_next_frame_ = true;
-  }
+  // publish_rate_ = declare_parameter("publish_rate", -1.0);
+  // if(std::abs(publish_rate_) < std::numeric_limits<double>::epsilon()){
+  //   RCLCPP_WARN(get_logger(), "Invalid publish_rate = 0. Use default value -1 instead");
+  //   publish_rate_ = -1.0;
+  // }
+  // if(publish_rate_ > 0){
+  //   const auto publish_period = rclcpp::Rate(publish_rate_).period();
+  //   image_pub_timer_ = this->create_wall_timer(publish_period, [this](){this->publish_next_frame_=true;});
+  //   publish_next_frame_ = false;
+  // }
+  // else{
+  //   publish_next_frame_ = true;
+  // }
   const auto qos = use_sensor_data_qos ? rclcpp::SensorDataQoS() : rclcpp::QoS(10);
 
   use_image_transport_ = declare_parameter("use_image_transport", true);
@@ -124,9 +124,9 @@ V4L2Camera::V4L2Camera(rclcpp::NodeOptions const & options)
           continue;
         }
 
-        if(publish_next_frame_ == false){
-          continue;
-        }
+        // if(publish_next_frame_ == false){
+        //   continue;
+        // }
 
         auto stamp = img->header.stamp;
         if (img->encoding != output_encoding_) {
@@ -148,7 +148,7 @@ V4L2Camera::V4L2Camera(rclcpp::NodeOptions const & options)
 
         ci->header.stamp = stamp;
         ci->header.frame_id = camera_frame_id_;
-        publish_next_frame_ = publish_rate_ < 0;
+        // publish_next_frame_ = publish_rate_ < 0;
         if(last_capture_stamp_.seconds() > 0){
           capture_rate_ = 1.0 / (rclcpp::Time(stamp) - last_capture_stamp_).seconds();
         }

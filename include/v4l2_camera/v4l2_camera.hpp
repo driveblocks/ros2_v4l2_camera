@@ -115,10 +115,10 @@ private:
 
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_callback_;
 
-  double publish_rate_;
-  rclcpp::TimerBase::SharedPtr image_pub_timer_;
+  // double publish_rate_;
+  // rclcpp::TimerBase::SharedPtr image_pub_timer_;
 
-  bool publish_next_frame_;
+  // bool publish_next_frame_;
   bool use_image_transport_;
 
   diagnostic_updater::Updater diagnostic_updater_{this};

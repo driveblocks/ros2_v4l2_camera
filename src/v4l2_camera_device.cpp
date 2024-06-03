@@ -18,6 +18,7 @@
 #include <sensor_msgs/image_encodings.hpp>
 
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
@@ -248,12 +249,31 @@ Image::UniquePtr V4l2CameraDevice::capture()
   buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   buf.memory = V4L2_MEMORY_MMAP;
 
+  // Poll setup
+  struct pollfd fds[1];
+  fds[0].fd = fd_;
+  fds[0].events = POLLIN;
+
+  // Wait until the device is ready for reading
+  int r = poll(fds, 1, 2000); // Timeout of 2000 milliseconds (2 seconds)
+
+  if (r == -1) {
+    RCLCPP_ERROR(
+      rclcpp::get_logger("v4l2_camera"),
+      "Error in poll: %s (%s)", strerror(errno), std::to_string(errno).c_str());
+    return nullptr;
+  } else if (r == 0) {
+    RCLCPP_ERROR(
+      rclcpp::get_logger("v4l2_camera"),
+      "Timeout waiting for frame");
+    return nullptr;
+  }
+
   // Dequeue buffer with new image
   if (-1 == ioctl(fd_, VIDIOC_DQBUF, &buf)) {
     RCLCPP_ERROR(
       rclcpp::get_logger("v4l2_camera"),
-      "Error dequeueing buffer: %s (%s)", strerror(errno),
-      std::to_string(errno).c_str());
+      "Error dequeueing buffer: %s (%s)", strerror(errno), std::to_string(errno).c_str());
     return nullptr;
   }
 
